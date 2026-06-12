@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrackFinance - Controle Pessoal</title>
+    <style>
+/* Configurações Globais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f7f9fc;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Cabeçalho */
+header {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: white;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Seção de Cards */
+.resumo {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card h3 {
+    font-size: 16px;
+    color: #666;
+}
+
+.card p {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* Formulário */
+.formulario {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+}
+
+button {
+    background-color: #ff9800;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:active {
+    background-color: #e65100;
+}
+
+/* Tabela de Histórico */
+.tabela-container {
+    width: 100%;
+    max-width: 500px;
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    border-bottom: 2px solid #eee;
+    padding: 10px;
+    color: #888;
+    font-size: 14px;
+    text-align: left;
+}
+
+td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+}
+
+/* Botão Excluir dentro da tabela */
+.btn-deletar {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+}
+
+    </style>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>TrackFinance</h1>
+    </header>
+
+    <main>
+        <!-- Cards de Resumo -->
+        <section class="resumo">
+            <div class="card"><h3>Entradas</h3><p id="total-entradas">R$ 0,00</p></div>
+            <div class="card"><h3>Saídas</h3><p id="total-saidas">R$ 0,00</p></div>
+            <div class="card"><h3>Saldo</h3><p id="saldo-total">R$ 0,00</p></div>
+        </section>
+
+        <!-- Formulário -->
+        <section class="formulario">
+            <input type="text" id="descricao" placeholder="Descrição (ex: Aluguel)">
+            <input type="number" id="valor" placeholder="Valor (ex: 100.00)">
+            <select id="tipo">
+                <option value="entrada">Entrada</option>
+                <option value="saida">Saída</option>
+            </select>
+            <button id="btn-adicionar">Adicionar</button>
+        </section>
+
+        <!-- Tabela -->
+        <section class="tabela-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-transacoes">
+                    <!-- Transações aparecerão aqui via JS -->
+                </tbody>
+            </table>
+        </section>
+        </section>
+    </main>
+
+       <script>
+        const btnAdicionar = document.getElementById('btn-adicionar');
+        const lista = document.getElementById('lista-transacoes');
+        const totalEntradasEl = document.getElementById('total-entradas');
+        const totalSaidasEl = document.getElementById('total-saidas');
+        const saldoTotalEl = document.getElementById('saldo-total');
+
+        // Carrega as transações salvas ou começa com uma lista vazia
+        let transacoes = JSON.parse(localStorage.getItem('transacoes')) || [];
+
+        // Função que calcula os totais e atualiza os cards
+        function atualizarTotais() {
+            const entradas = transacoes
+                .filter(t => t.tipo === 'entrada')
+                .reduce((sum, t) => sum + t.valor, 0);
+
+            const saidas = transacoes
+                .filter(t => t.tipo === 'saida')
+                .reduce((sum, t) => sum + t.valor, 0);
+
+            const saldo = entradas - saidas;
+
+            totalEntradasEl.textContent = `R$ ${entradas.toFixed(2)}`;
+            totalSaidasEl.textContent = `R$ ${saidas.toFixed(2)}`;
+            saldoTotalEl.textContent = `R$ ${saldo.toFixed(2)}`;
+
+            saldoTotalEl.style.color = saldo >= 0 ? 'green' : 'red';
+        }
+
+        // Função para renderizar uma transação na tela
+        function adicionarNaTela(transacao) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${transacao.descricao}</td>
+                <td style="color: ${transacao.tipo === 'entrada' ? 'green' : 'red'}">R$ ${transacao.valor.toFixed(2)}</td>
+                <td><button class="btn-deletar">Excluir</button></td>
+            `;
+
+            // Lógica do botão excluir
+            tr.querySelector('.btn-deletar').addEventListener('click', () => {
+                // Remove do array de transações pelo ID
+                transacoes = transacoes.filter(t => t.id !== transacao.id);
+                // Salva a nova lista no LocalStorage
+                localStorage.setItem('transacoes', JSON.stringify(transacoes));
+                // Remove da tela e recalcula
+                tr.remove();
+                atualizarTotais();
+            });
+
+            lista.appendChild(tr);
+        }
+
+        // Função para desenhar a lista inteira ao abrir o app
+        function inicializarApp() {
+            lista.innerHTML = '';
+            transacoes.forEach(adicionarNaTela);
+            atualizarTotais();
+        }
+
+        // Evento de clique para adicionar nova transação
+        btnAdicionar.addEventListener('click', () => {
+            const descricao = document.getElementById('descricao').value;
+            const valorInput = document.getElementById('valor').value;
+            const tipo = document.getElementById('tipo').value;
+
+            if (descricao === '' || valorInput === '') {
+                return alert("Por favor, preencha todos os campos!");
+            }
+
+            const novaTransacao = {
+                id: Date.now(), // Gera um ID único baseado no tempo
+                descricao: descricao,
+                valor: parseFloat(valorInput),
+                tipo: tipo
+            };
+
+            // Adiciona no array, salva no LocalStorage e mostra na tela
+            transacoes.push(novaTransacao);
+            localStorage.setItem('transacoes', JSON.stringify(transacoes));
+            
+            adicionarNaTela(novaTransacao);
+            atualizarTotais();
+
+            // Limpa os inputs
+            document.getElementById('descricao').value = '';
+            document.getElementById('valor').value = '';
+        });
+
+        // Roda as informações salvas assim que a página carrega
+        inicializarApp();
+    </script>
+
+</body>
+</html>
+
+
+    
+</body>
+</html>
+
